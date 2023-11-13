@@ -1,0 +1,5 @@
+*.mpg
+*.png
+data
+frames
+__pycache__
