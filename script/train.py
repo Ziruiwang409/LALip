@@ -17,7 +17,8 @@ import statistics
 
 # model & dataset
 from model.densenet_3d import LipReadModel
-from dataset.dataset import GRIDDataset
+
+import dataset.utils
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
@@ -26,8 +27,9 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--num_workers', type=int, default=4, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
-    parser.add_argument('--train_data_path', type=str, default='data/train', help='train data path')
-    parser.add_argument('--val_data_path', type=str, default='data/val', help='val data path')
+    #parser.add_argument('--train_data_path', type=str, default='data/train', help='train data path')
+    #parser.add_argument('--val_data_path', type=str, default='data/val', help='val data path')
+    parser.add_argument('--data_path', type=str, default='data', help='train data path')
     parser.add_argument('--visualize', type=bool, default=False, help='visualize error curve')
 
     args = parser.parse_args()
@@ -43,11 +45,7 @@ def train():
 
     # load data
     # TODO: Dataset to be implemented
-    train_data = GRIDDataset(path=args.train_data_path, split='train')
-    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    
-    valid_data = GRIDDataset(path=args.val_data_path, split='val')
-    valid_loader = DataLoader(valid_data, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
+    train_loader, valid_loader = dataset.utils.get_dataloaders(args.train_data_path, args.batch_size, num_workers=args.num_workers)
 
     print("data loaded")
     # load model

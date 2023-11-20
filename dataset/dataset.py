@@ -2,6 +2,8 @@ import torch
 import os
 import cv2
 from torch.utils.data import Dataset, DataLoader
+from pathlib import Path
+import numpy as np
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -9,12 +11,75 @@ class GRIDDataset(Dataset):
     '''
     Dataset class for one word videos from GRID corpus Dataset
     '''
-    def __init__(self, path, split):
+    def __init__(self, path):
         '''
         Args:
             path (str): path to the dataset folder
-            split (str): train/val/test
         '''
-        self.root = path
-        self.split = split
-        self.word2idx = {'bin': 0, 'lay': 1, 'place': 2, 'set': 3, 'blue': 4, 'green': 5, 'red': 6, 'white': 7, 'at': 8, 'by': 9, 'in': 10, 'with': 11, 'a': 12, 'an': 13, 'the': 14, 'no': 15, 'zero': 16, 'one': 17, 'two': 18, 'three': 19, 'four': 20, 'five': 21, 'six': 22, 'seven': 23, 'eight': 24, 'nine': 25, 'again': 26, 'now': 27, 'please': 28, 'soon': 29, 'tomorrow': 30, 'morning': 31, 'monday': 32, 'tuesday': 33, 'wednesday': 34, 'thursday': 35, 'friday': 36, 'saturday': 37, 'sunday': 38}
+        self.root = Path(path).__str__()
+        self.video_dirs = GRIDDataset._get_video_dirs(path)
+
+    def word2idx(self, word):
+        chars = 'a b c d e f g h i j k l m n o p q r s t u v w x y z'
+        chars = chars.split(' ')
+
+        words = ['bin', 'lay', 'place', 'set', 'blue', 'green', 'red', 'white', 'at', 'by', 'in', 'with', 'a', 'an', 'the', 'no', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'again', 'now', 'please', 'soon']
+
+        words.extend(chars)
+
+        return words.index(word)
+
+    def _get_video_dirs(path):
+        video_dirs = []
+
+        speaker_dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+
+        for dir in speaker_dirs:
+            dir_path = os.path.join(path, dir)
+            child_dirs = [os.path.join(dir, d) for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d))]
+            video_dirs.extend(child_dirs)
+
+        return video_dirs
+    
+    def __getitem__(self, index):
+        video_dir = os.path.join(self.root, self.video_dirs[index])
+        frame_paths = GRIDDataset._get_paths(video_dir)
+        frames = []
+        for frame_path in frame_paths:
+            frame = cv2.imread(frame_path,0)
+            frame = torch.from_numpy(frame)
+            frame = frame.to(device)
+            frames.append(frame)
+
+        with open(os.path.join(video_dir, 'words.txt')) as f:
+            words = f.read()
+
+        words = words.split(' ')
+        
+        word_idx = [self.word2idx(word) for word in words]
+
+        return torch.stack(frames), torch.tensor(word_idx)
+    
+    def _get_paths(data_path, file_type='.png'):
+        paths = []
+
+        for root, dirs, files in os.walk(data_path):
+            for file in files:
+                if file.endswith(file_type):
+                    paths.append(os.path.join(root, file))
+        return paths
+    
+    def __len__(self):
+        return len(self.video_dirs)
+    
+
+if __name__ == '__main__':
+    path = '.\\frames'
+    dataset = GRIDDataset(Path(path).__str__(), 'train')
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(0.8*len(dataset)), len(dataset) - int(0.8*len(dataset))])
+
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
+
+    print(len(train_loader))
+    print(len(val_loader))
