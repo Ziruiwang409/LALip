@@ -63,7 +63,7 @@ class Dense3D(nn.Module):
 
         # Initialise the network with a single layer
         self.features = nn.Sequential(OrderedDict([
-            ('conv0', nn.Conv3d(3, number_initial_features, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))),
+            ('conv0', nn.Conv3d(1, number_initial_features, kernel_size=(3, 5, 5), stride=(1, 2, 2), padding=(1, 2, 2))),
             ('norm0', nn.BatchNorm3d(number_initial_features)),
             ('relu0', nn.ReLU(inplace=True)),
             ('pool0', nn.MaxPool3d(kernel_size=kernel, stride=stride)),

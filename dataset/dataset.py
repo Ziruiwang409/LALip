@@ -7,6 +7,15 @@ import numpy as np
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
+def custom_collate(batch):
+    batch = list(filter(lambda x:x is not None, batch))
+
+    if not batch:
+        return None, None
+    
+    return torch.utils.data.dataloader.default_collate(batch)
+
 class GRIDDataset(Dataset):
     '''
     Dataset class for one word videos from GRID corpus Dataset
@@ -51,6 +60,9 @@ class GRIDDataset(Dataset):
             frame = frame.to(device)
             frames.append(frame)
 
+        if len(frames) != 75:
+            return None
+
         with open(os.path.join(video_dir, 'words.txt')) as f:
             words = f.read()
 
@@ -58,7 +70,11 @@ class GRIDDataset(Dataset):
         
         word_idx = [self.word2idx(word) for word in words]
 
-        return torch.stack(frames), torch.tensor(word_idx)
+        frames = torch.stack(frames)
+        frames = frames.float()
+        frames = frames/255.0
+        frames = frames.unsqueeze(0)
+        return frames, torch.tensor(word_idx)
     
     def _get_paths(data_path, file_type='.png'):
         paths = []
@@ -73,13 +89,19 @@ class GRIDDataset(Dataset):
         return len(self.video_dirs)
     
 
-if __name__ == '__main__':
-    path = '.\\frames'
-    dataset = GRIDDataset(Path(path).__str__(), 'train')
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(0.8*len(dataset)), len(dataset) - int(0.8*len(dataset))])
+def get_dataloaders(root_path,
+                    batch_size, 
+                    split=0.8,
+                    shuffle=True,
+                    num_workers=0,
+                    pin_memory=True):
+    
+    dataset = GRIDDataset(root_path)
+    train_size = int(split * len(dataset))
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=pin_memory, collate_fn=custom_collate)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=pin_memory, collate_fn=custom_collate)
+    return train_loader, val_loader
 
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
-
-    print(len(train_loader))
-    print(len(val_loader))
+    

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from Dense3D import Dense3D
+from model.Dense3D import Dense3D
 
 class DenseNet3D(nn.Module):
     def __init__(self):
@@ -11,12 +11,12 @@ class DenseNet3D(nn.Module):
 
         self.head = Dense3D()
 
-        self.bi_gru_1 = nn.GRU(3072, 256, 1, bidirectional=True)
+        self.bi_gru_1 = nn.GRU(192, 256, 1, bidirectional=True)
         self.bi_gru_2 = nn.GRU(512, 256, 1, bidirectional=True)
         self.dropout = nn.Dropout(0.5)
 
         # classifier
-        self.fc1 = nn.Linear(512, 28)
+        self.fc1 = nn.Linear(512, 6)
     
     def forward(self, x):
         
