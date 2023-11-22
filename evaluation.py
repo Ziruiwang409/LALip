@@ -36,16 +36,16 @@ def validate(model_output, length, labels, total=None, wrong=None):
 
 
 class Evaluator():
-    def __init__(self, model, data_loader, device='cuda'):
-        self.model = model
+    def __init__(self, mode, data_loader, device='cuda'):
+        self.mode = mode
+        assert self.mode in ['validation', 'test']
         self.data_loader = data_loader      # TODO: when dataloader is ready, change it
         self.device = device
     
     def __call__(self, model):
         with torch.no_grad():
-            print("Starting {}...".format(self.mode))
-            count = np.zeros((len(self.validationdataset.pinyins)))
-            validator_function = model.validator_function()
+            print(f"Starting {self.mode}...")
+            count = np.zeros((len(self.validationdataset.pinyins)))     # TODO: change this when dataset is ready
             model.eval()
             if self.device == 'cuda':
                 net = nn.DataParallel(model).cuda()
@@ -59,7 +59,7 @@ class Evaluator():
                 model = model.cuda()
 
                 outputs = net(input)
-                (vector, _) = validator_function(outputs, length, labels)
+                (vector, _) = validate(outputs, length, labels)
 
                 argmax = (-vector.cpu().numpy()).argsort()
                 for i in range(input.size(0)):
