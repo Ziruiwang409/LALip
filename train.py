@@ -22,14 +22,14 @@ from dataset import dataset
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
-    parser.add_argument('--batch_size', type=int, default=1, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
-    parser.add_argument('--num_workers', type=int, default=1, help='number of workers')
+    parser.add_argument('--num_workers', type=int, default=4, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
     #parser.add_argument('--train_data_path', type=str, default='data/train', help='train data path')
     #parser.add_argument('--val_data_path', type=str, default='data/val', help='val data path')
-    parser.add_argument('--data_path', type=str, default='data', help='train data path')
+    parser.add_argument('--data_path', type=str, default='frames', help='train data path')
     parser.add_argument('--visualize', type=bool, default=False, help='visualize error curve')
 
     args = parser.parse_args()
