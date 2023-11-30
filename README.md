@@ -11,7 +11,7 @@ LALip: LLM-Aided Lip-Reading Sentences
 
 ### Troubleshooting
 
-- Ensure that train.py `data_path` arg value points to the correct direectory
+- Ensure that train.py `data_path` arg value points to the correct directory
 
 ### Notes
 
