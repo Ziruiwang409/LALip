@@ -1,3 +1,6 @@
+# this is adapted from the paper's evaluation code
+
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -68,9 +71,9 @@ class Evaluator():
                 num_samples += input.size(0)
                 
                 print(
-                    f'i_batch/tot_batch:{i_batch}/{len(self.data_loader)},
-                    corret/tot:{count[0]}/{len(self.data_loader)},
-                    current_acc:{1.0*count[0]/num_samples}'
+                    f"i_batch/tot_batch:{i_batch}/{len(self.data_loader)},"
+                    f"corret/tot:{count[0]}/{len(self.data_loader)},"
+                    f"current_acc:{1.0*count[0]/num_samples}"
                 )                
 
         return count/num_samples
