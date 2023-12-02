@@ -4,6 +4,7 @@ import cv2
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import numpy as np
+from misc import word2idx, gt_label
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -27,16 +28,6 @@ class GRIDDataset(Dataset):
         '''
         self.root = Path(path).__str__()
         self.video_dirs = GRIDDataset._get_video_dirs(path)
-
-    def word2idx(self, word):
-        chars = 'a b c d e f g h i j k l m n o p q r s t u v w x y z'
-        chars = chars.split(' ')
-
-        words = ['bin', 'lay', 'place', 'set', 'blue', 'green', 'red', 'white', 'at', 'by', 'in', 'with', 'a', 'an', 'the', 'no', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'again', 'now', 'please', 'soon']
-
-        words.extend(chars)
-
-        return words.index(word)
 
     def _get_video_dirs(path):
         video_dirs = []
@@ -67,14 +58,17 @@ class GRIDDataset(Dataset):
             words = f.read()
 
         words = words.split(' ')
+        print("words:",words)
         
-        word_idx = [self.word2idx(word) for word in words]
+        word_idx = [word2idx(word) for word in words]
 
         frames = torch.stack(frames)
         frames = frames.float()
         frames = frames/255.0
         frames = frames.unsqueeze(0)
-        return frames, torch.tensor(word_idx)
+        num_frames = frames.shape[1]
+        num_text  = len(word_idx)
+        return frames, torch.tensor(word_idx), num_frames, num_text
     
     def _get_paths(data_path, file_type='.png'):
         paths = []

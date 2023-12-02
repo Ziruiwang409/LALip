@@ -18,14 +18,19 @@ import statistics
 # model & dataset
 from model.densenet_3d import DenseNet3D
 
+# evaluation
+from evaluation.WER_CER_metric import CalculateErrorRate
 from dataset import dataset
+from misc import word2idx, ctc_idx2word, idx2word, gt_label
+
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
-    parser.add_argument('--num_workers', type=int, default=4, help='number of workers')
+    parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
     #parser.add_argument('--train_data_path', type=str, default='data/train', help='train data path')
     #parser.add_argument('--val_data_path', type=str, default='data/val', help='val data path')
@@ -34,6 +39,14 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
+def text_decoder(output):
+    output = output.argmax(-1) # (B, T=75, Emb=56) -> (B, T=75)
+    length = output.size(0)
+    text_list = []
+    for _ in range(length):
+        text_list.append(ctc_idx2word(output[_]))
+    return text_list
 
 def train():
     # parse arguments
@@ -46,18 +59,18 @@ def train():
     # load data
     # TODO: Dataset to be implemented
     train_loader, valid_loader = dataset.get_dataloaders(root_path=args.data_path,
-                                                         batch_size=args.batch_size,
+                                                         batch_size=1,
                                                          split=0.8,
                                                          shuffle=True,
                                                          num_workers=args.num_workers,
-                                                         pin_memory=True)
+                                                         pin_memory=False)
 
     print("data loaded")
     # load model
     model = DenseNet3D()
     model.to(device)
     # loss function
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CTCLoss()
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
@@ -66,62 +79,59 @@ def train():
     model.train()
     iteration = 0
 
+    WER = []
+    CER = []
+
     # training
     for epoch in range(args.epochs):
         correct_train = 0
         total_train = 0
         losses = []
 
-        for i, (video, label) in enumerate(train_loader):
+        for i, (video, label, video_length, label_length) in enumerate(train_loader):
             if video is None: # some videos have incorrect number of frames, skip them (see collate_fn in dataset.py)
                 continue
 
-            # empty cache   
-            torch.cuda.empty_cache()
+            model.train()
+            # zero the parameter gradients
             optimizer.zero_grad()
 
-            print("video shape:", video.shape)
-            #video = pad_sequence(video, batch_first=True)
+            video, label,video_length, label_length = video.to(device), label.to(device), video_length.to(device), label_length.to(device)
+
             
             # forward
-            output = model(video)
-
-            _, predicted = torch.max(output.data, 1)
-
-            total_train += label.size(0)
-            correct_train += (predicted == label).sum().item()    
-
-            # loss
-            label = label.to(device)
-            loss = criterion(output, label)
-
-            # backward
+            output = model(video)   #(T, B, C, H, W) -> (T, B, Emb=56)
+            # update model
+            loss = criterion(output.transpose(0, 1).log_softmax(-1), label, video_length.view(-1), label_length.view(-1))
             loss.backward()
+
+            # decode prediction
+            pred_text = text_decoder(output)
+            print("prediction text:",pred_text)
+            gt_text = [idx2word(label[i]) for i in range(label.size(0))]
+            print("ground truth text:",gt_text)
+            # calculate WER and CER
+            for i in range(len(pred_text)):
+                # print(gt_text[i])
+                # print(pred_text[i])
+                wer = CalculateErrorRate(gt_text[i], pred_text[i], method='WER')
+                cer = CalculateErrorRate(gt_text[i], pred_text[i], method='CER')
+                # print(wer, cer)
+                WER.append(wer)
+                CER.append(cer)
+            # print(WER)
+            # print(CER)
+            exit()
+            mean_WER = np.mean(WER)
+            mean_CER = np.mean(CER)
+
+            total_iter = epoch * len(train_loader) + i
+
             optimizer.step()
 
-            losses.append(loss.item())
-            iteration += 1
+            # statistics
+            print('Epoch: {}, Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}'.format(epoch, iteration, loss.item(), mean_WER, mean_CER))
 
-            if iteration % 10 == 0: # validate every 10 iterations
-                model.eval()
-                with torch.no_grad():
-                    correct_val = 0
-                    total_val = 0
-                    for i, (video, label) in enumerate(valid_loader):
-                        if video is None: # some videos have incorrect number of frames, skip them (see collate_fn in dataset.py)
-                            continue
-                        video = pad_sequence(video, batch_first=True)
-                        output = model(video)
-                        _, predicted = torch.max(output.data, 1)
-                        total_val += label.size(0)
-                        correct_val += (predicted == label).sum().item()
-                    print("----------------- Validation ----------------")
-                    print('Epoch: {}, Iter: {},  Val_Acc: {}'.format(epoch, i, 100 * correct_val//total_val))
-                    print("----------------------------------------------")
-                model.train()
-
-        # print training information
-        print('Epoch: {}, Iter: {}, Loss: {}'.format(epoch, i, 100 * correct_train//total_train))
 
     # save model
     if not os.path.exists(args.save_dir):

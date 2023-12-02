@@ -16,7 +16,7 @@ class DenseNet3D(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
         # classifier
-        self.fc1 = nn.Linear(512, 6)
+        self.fc1 = nn.Linear(512, 56)   # NOTE: number of classes  = 56 (26 characters +30 words)
     
     def forward(self, x):
         
@@ -24,7 +24,6 @@ class DenseNet3D(nn.Module):
         # Pass the input tensor containing the frames through the 3D dense network
         # (B, C=3, T, H=64, W=128) --> (B, C=96, T, H=4, W=8)
         x = self.head(x)
-        print("output shape from dense3d head:", x.shape)
 
         # Rearrange the input before encoder
         # (B, C, T, H, W) -> (T, B, C, H, W)
