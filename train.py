@@ -57,9 +57,8 @@ def train():
     print('Using device:', device)
 
     # load data
-    # TODO: Dataset to be implemented
     train_loader, valid_loader = dataset.get_dataloaders(root_path=args.data_path,
-                                                         batch_size=1,
+                                                         batch_size=args.batch_size,
                                                          split=0.8,
                                                          shuffle=True,
                                                          num_workers=args.num_workers,
@@ -101,8 +100,10 @@ def train():
             
             # forward
             output = model(video)   #(T, B, C, H, W) -> (T, B, Emb=56)
+
             # update model
-            loss = criterion(output.transpose(0, 1).log_softmax(-1), label, video_length.view(-1), label_length.view(-1))
+            log_probs = output.log_softmax(-1).transpose(0,1)
+            loss = criterion(log_probs, label, label_length, label_length)
             loss.backward()
 
             # decode prediction
@@ -121,7 +122,7 @@ def train():
                 CER.append(cer)
             # print(WER)
             # print(CER)
-            exit()
+            #exit()
             mean_WER = np.mean(WER)
             mean_CER = np.mean(CER)
 
