@@ -63,6 +63,7 @@ def train():
     # training
     WER = []
     CER = []
+    LOSS = []
     iteration = 0
     print("start training...")
 
@@ -85,6 +86,7 @@ def train():
             # backward
             loss = criterion(output.log_softmax(-1).transpose(0,1), label, video_length.view(-1), label_length.view(-1))
             loss.backward()
+            LOSS.append(loss.detach().cpu().numpy())
 
             # decode text output
             pred_text = ctc_decoder(output)
@@ -114,7 +116,7 @@ def train():
                 log.write('Epoch [{}/{}], Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}\n'.format(epoch + 1, args.epochs, iteration, loss.item(), mean_WER, mean_CER))
 
         # validation after each epoch
-        evaluate(model, valid_loader, device, epoch,log)
+        evaluate(model, valid_loader, device, epoch, log)
 
         # save model
         if not os.path.exists(args.save_dir):
@@ -126,6 +128,29 @@ def train():
 
     # close log
     log.close()
+
+    # visualize
+    if args.visualize:
+        plt.figure()
+        plt.plot(LOSS)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('Loss Curve')
+        plt.savefig('loss.png')
+
+        plt.figure()
+        plt.plot(WER)
+        plt.xlabel('Iteration')
+        plt.ylabel('WER')
+        plt.title('WER Curve')
+        plt.savefig('WER.png')
+
+        plt.figure()
+        plt.plot(CER)
+        plt.xlabel('Iteration')
+        plt.ylabel('CER')
+        plt.title('CER Curve')
+        plt.savefig('CER.png')
 
 def evaluate(model, valid_loader, device, epoch, log):
     model.eval()
