@@ -58,7 +58,7 @@ class GRIDDataset(Dataset):
             words = f.read()
 
         words = words.split(' ')
-        print("words:",words)
+        #print("words:",words)
         
         word_idx = [word2idx(word) for word in words]
 

@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
-    parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
+    parser.add_argument('--num_workers', type=int, default=8, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
     parser.add_argument('--data_path', type=str, default='frames', help='train data path')
     parser.add_argument('--visualize', type=bool, default=False, help='visualize error curve')
@@ -48,14 +48,15 @@ if __name__ == '__main__':
     # Loss and Optimizer
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    losses = []
 
     # Training loop
     num_epochs = 10
     for epoch in range(num_epochs):
         model.train()
         total_loss = 0
-
-        for video_frames, target_text, _, _ in train_loader:
+        
+        for (i, (video_frames, target_text, _, _)) in enumerate(train_loader):
             if video_frames is None:
                 continue
 
@@ -67,6 +68,7 @@ if __name__ == '__main__':
             outputs_reshape = outputs.view(-1, outputs.size(-1))
             target_text_reshape = target_text.view(-1)
             loss = criterion(outputs_reshape, target_text_reshape)
+            print("loss:",loss)
             
             # Backward pass and optimize
             optimizer.zero_grad()
@@ -77,4 +79,5 @@ if __name__ == '__main__':
             pred_text = text_decoder(outputs)
             print("pred_text:",pred_text)
 
+        losses.append(total_loss/len(train_loader))
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss/len(train_loader)}")
