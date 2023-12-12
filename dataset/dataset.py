@@ -4,7 +4,8 @@ import cv2
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import numpy as np
-from misc import word2idx, gt_label
+
+from misc import text2idx
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -13,7 +14,7 @@ def custom_collate(batch):
     batch = list(filter(lambda x:x is not None, batch))
 
     if not batch:
-        return None, None
+        return None, None,None, None
     
     return torch.utils.data.dataloader.default_collate(batch)
 
@@ -27,9 +28,48 @@ class GRIDDataset(Dataset):
             path (str): path to the dataset folder
         '''
         self.root = Path(path).__str__()
-        self.video_dirs = GRIDDataset._get_video_dirs(path)
+        self.video_dirs = self._get_video_dirs(path)
+    
+    def __getitem__(self, index):
+        video_dir = os.path.join(self.root, self.video_dirs[index])
+        frame_paths = self._get_paths(video_dir)
 
-    def _get_video_dirs(path):
+        # 1. get video
+        video = []
+        for frame_path in frame_paths:
+            frame = cv2.imread(frame_path,0)
+            frame = torch.from_numpy(frame)
+            frame = frame.to(device)
+            video.append(frame)
+
+        # skip if number of video is not 75
+        if len(video) != 75:
+            return None
+
+        video = torch.stack(video)
+        video = video.float()
+        video = video/255.0
+        video = video.unsqueeze(0)
+        video_length = video.shape[1]
+        
+        # 2. get text
+        with open(os.path.join(video_dir, 'words.txt')) as f:
+            text = f.read()
+        label = text2idx(text.lower())
+        label_length = label.shape[0]
+
+        # add padding   NOTE: length to be added to config file
+        label = self._add_padding(label, length=50)
+        
+        # convert to tensor
+        label = torch.LongTensor(label)
+ 
+        return video, label, video_length, label_length
+    
+    def __len__(self):
+        return len(self.video_dirs)
+    
+    def _get_video_dirs(self, path):
         video_dirs = []
 
         speaker_dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
@@ -41,36 +81,7 @@ class GRIDDataset(Dataset):
 
         return video_dirs
     
-    def __getitem__(self, index):
-        video_dir = os.path.join(self.root, self.video_dirs[index])
-        frame_paths = GRIDDataset._get_paths(video_dir)
-        frames = []
-        for frame_path in frame_paths:
-            frame = cv2.imread(frame_path,0)
-            frame = torch.from_numpy(frame)
-            frame = frame.to(device)
-            frames.append(frame)
-
-        if len(frames) != 75:
-            return None
-
-        with open(os.path.join(video_dir, 'words.txt')) as f:
-            words = f.read()
-
-        words = words.split(' ')
-        print("words:",words)
-        
-        word_idx = [word2idx(word) for word in words]
-
-        frames = torch.stack(frames)
-        frames = frames.float()
-        frames = frames/255.0
-        frames = frames.unsqueeze(0)
-        num_frames = frames.shape[1]
-        num_text  = len(word_idx)
-        return frames, torch.tensor(word_idx), num_frames, num_text
-    
-    def _get_paths(data_path, file_type='.png'):
+    def _get_paths(self, data_path, file_type='.png'):
         paths = []
 
         for root, dirs, files in os.walk(data_path):
@@ -79,9 +90,15 @@ class GRIDDataset(Dataset):
                     paths.append(os.path.join(root, file))
         return paths
     
-    def __len__(self):
-        return len(self.video_dirs)
-    
+    def _add_padding(self, text_array, length=50):
+        # convert to array if not already
+        text_array = np.array(text_array)
+        # add padding
+        if len(text_array) < length:
+            pad = np.zeros(length-len(text_array))
+            text_array = np.concatenate((text_array, pad), axis=0)
+        return text_array
+        
 
 def get_dataloaders(root_path,
                     batch_size, 

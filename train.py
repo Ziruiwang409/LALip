@@ -1,10 +1,5 @@
 # torch 
 import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pad_sequence
-from torchvision import transforms
-from torch.autograd import Variable
 
 # utils
 import os
@@ -13,134 +8,163 @@ import argparse
 
 # statistics & visualization
 import matplotlib.pyplot as plt
-import statistics
 
 # model & dataset
 from model.densenet_3d import DenseNet3D
+from dataset import dataset
 
 # evaluation
-from evaluation.WER_CER_metric import CalculateErrorRate
-from dataset import dataset
-from misc import word2idx, ctc_idx2word, idx2word, gt_label
-
-
+from metric.WER_CER_metric import CalculateErrorRate
+from misc import idx2text, ctc_decoder
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-    parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=2, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
-    #parser.add_argument('--train_data_path', type=str, default='data/train', help='train data path')
-    #parser.add_argument('--val_data_path', type=str, default='data/val', help='val data path')
-    parser.add_argument('--data_path', type=str, default='frames', help='train data path')
+    parser.add_argument('--data', type=str, default='frames', help='train data path')
     parser.add_argument('--visualize', type=bool, default=False, help='visualize error curve')
 
     args = parser.parse_args()
     return args
 
-def text_decoder(output):
-    output = output.argmax(-1) # (B, T=75, Emb=56) -> (B, T=75)
-    length = output.size(0)
-    text_list = []
-    for _ in range(length):
-        text_list.append(ctc_idx2word(output[_]))
-    return text_list
-
 def train():
-    # parse arguments
+    # prepare log 
+    if not os.path.exists('./log'):
+        os.makedirs('./log')
+    log = open('./log/log.txt', 'w')
+
+    # parse args
     args = parse_args()
-    print(args)
+    log.write(str(args)+'\n')
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print('Using device:', device)
+    log.write('Using device: {}\n'.format(device))
 
     # load data
-    train_loader, valid_loader = dataset.get_dataloaders(root_path=args.data_path,
-                                                         batch_size=args.batch_size,
+    train_loader, valid_loader = dataset.get_dataloaders(root_path=args.data,
+                                                         batch_size=64,
                                                          split=0.8,
                                                          shuffle=True,
                                                          num_workers=args.num_workers,
                                                          pin_memory=False)
-
     print("data loaded")
+
     # load model
     model = DenseNet3D()
     model.to(device)
-    # loss function
-    criterion = torch.nn.CTCLoss()
-    # optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
+    criterion = torch.nn.CTCLoss()                                  # loss function
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)    # optimizer
     print("model loaded")
-    # set to train mode
-    model.train()
-    iteration = 0
-
-    WER = []
-    CER = []
+    model.train() 
 
     # training
-    for epoch in range(args.epochs):
-        correct_train = 0
-        total_train = 0
-        losses = []
+    WER = []
+    CER = []
+    iteration = 0
+    print("start training...")
 
-        for i, (video, label, video_length, label_length) in enumerate(train_loader):
+    for epoch in range(args.epochs):
+        model.train()
+        for _, (video, label, video_length, label_length) in enumerate(train_loader):
+
             if video is None: # some videos have incorrect number of frames, skip them (see collate_fn in dataset.py)
                 continue
 
-            model.train()
-            # zero the parameter gradients
+            # reset gradients
             optimizer.zero_grad()
 
+            # load data to GPU
             video, label,video_length, label_length = video.to(device), label.to(device), video_length.to(device), label_length.to(device)
 
-            
-            # forward
-            output = model(video)   #(T, B, C, H, W) -> (T, B, Emb=56)
+            # forward 
+            output = model(video)   #(T, B, C, H, W) -> (B, T, Emb=28) (n, 75, 28)
 
-            # update model
-            log_probs = output.log_softmax(-1).transpose(0,1)
-            loss = criterion(log_probs, label, label_length, label_length)
+            # backward
+            loss = criterion(output.log_softmax(-1).transpose(0,1), label, video_length.view(-1), label_length.view(-1))
             loss.backward()
 
-            # decode prediction
-            pred_text = text_decoder(output)
-            print("prediction text:",pred_text)
-            gt_text = [idx2word(label[i]) for i in range(label.size(0))]
-            print("ground truth text:",gt_text)
+            # decode text output
+            pred_text = ctc_decoder(output)
+
+            gt_text = []
+            for _ in range(len(label)):
+                gt_text.append(idx2text(label[_]))
+
             # calculate WER and CER
-            for i in range(len(pred_text)):
-                # print(gt_text[i])
-                # print(pred_text[i])
-                wer = CalculateErrorRate(gt_text[i], pred_text[i], method='WER')
-                cer = CalculateErrorRate(gt_text[i], pred_text[i], method='CER')
-                # print(wer, cer)
-                WER.append(wer)
-                CER.append(cer)
-            # print(WER)
-            # print(CER)
-            #exit()
-            mean_WER = np.mean(WER)
-            mean_CER = np.mean(CER)
+            wer = CalculateErrorRate(gt_text[0], pred_text[0], method='WER')
+            cer = CalculateErrorRate(gt_text[0], pred_text[0], method='CER')
+            WER.append(wer)
+            CER.append(cer)
 
-            total_iter = epoch * len(train_loader) + i
 
+            mean_WER = np.mean(np.array(WER))
+            mean_CER = np.mean(np.array(CER))
+
+            # update parameters
             optimizer.step()
 
             # statistics
-            print('Epoch: {}, Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}'.format(epoch, iteration, loss.item(), mean_WER, mean_CER))
+            iteration += 1
+            if iteration % 10 == 0:
+                # print statistics and write to log
+                print('Epoch [{}/{}], Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}'.format(epoch + 1, args.epochs, iteration, loss.item(), mean_WER, mean_CER))
+                log.write('Epoch [{}/{}], Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}\n'.format(epoch + 1, args.epochs, iteration, loss.item(), mean_WER, mean_CER))
 
+        # validation after each epoch
+        evaluate(model, valid_loader, device, epoch,log)
 
-    # save model
-    if not os.path.exists(args.save_dir):
-        os.makedirs(args.save_dir)
-    torch.save(model.state_dict(), os.path.join(args.save_dir, 'model-{}.pth'.format(epoch)))
+        # save model
+        if not os.path.exists(args.save_dir):
+            os.makedirs(args.save_dir)
+        torch.save(model.state_dict(), os.path.join(args.save_dir, 'model-ep{}.pth'.format(epoch)))
 
-    #if args.visualize:
-        # TODO: not implemented
+        # flush log
+        log.flush()
+
+    # close log
+    log.close()
+
+def evaluate(model, valid_loader, device, epoch, log):
+    model.eval()
+
+    with torch.no_grad():
+        # initialize
+        eval_loss = []
+        eval_WER = []
+        eval_CER = []
+        
+        criterion = torch.nn.CTCLoss()
+
+        for _, (video, label, video_length, label_length) in enumerate(valid_loader):
+            if video is None:
+                continue
+            video, label, video_length, label_length = video.to(device), label.to(device), video_length.to(device), label_length.to(device)
+            output = model(video)
+
+            # calculate loss
+            loss = criterion(output.log_softmax(-1).transpose(0,1), label, video_length.view(-1), label_length.view(-1))
+            eval_loss.append(loss.detach().cpu().numpy())
+
+            pred_text = ctc_decoder(output)
+            gt_text = []
+            for _ in range(len(label)):
+                gt_text.append(idx2text(label[_]))
+            
+            # calculate WER and CER
+            wer = CalculateErrorRate(gt_text[0], pred_text[0], method='WER')
+            cer = CalculateErrorRate(gt_text[0], pred_text[0], method='CER')
+            eval_WER.append(wer)
+            eval_CER.append(cer)
+
+            mean_WER = np.mean(np.array(eval_WER))
+            mean_CER = np.mean(np.array(eval_CER))
+        
+        # print statistics
+        print('Epoch {} Evaluation Loss: {:.3f}, eval WER: {:.3f}, eval CER: {:.3f}'.format(epoch+1, np.mean(np.array(eval_loss)), mean_WER, mean_CER))
+        log.write('Epoch {} Evaluation Loss: {:.3f}, eval WER: {:.3f}, eval CER: {:.3f}\n'.format(epoch+1, np.mean(np.array(eval_loss)), mean_WER, mean_CER))
 
 
 if __name__ == '__main__':
