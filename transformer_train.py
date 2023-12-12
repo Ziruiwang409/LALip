@@ -3,6 +3,8 @@ from dataset import dataset
 from model import transformer
 import argparse
 from misc import word2idx, ctc_idx2word, idx2word, gt_label
+from llm import LLM_Inference
+import numpy as np
 
 def text_decoder(output):
     probabilities = torch.nn.functional.softmax(output, dim=-1)
@@ -13,11 +15,11 @@ def text_decoder(output):
         tokens = [gt_label()[index.item()] for index in sequence]
         converted_sequences.append(tokens)
 
-    return converted_sequences
+    return np.array(converted_sequences)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
-    parser.add_argument('--batch_size', type=int, default=64, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=4, help='batch size')
     parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--num_workers', type=int, default=8, help='number of workers')
@@ -31,6 +33,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    llm = LLM_Inference(api_key="your-api-key")
     args = parse_args()
     print(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -77,7 +80,12 @@ if __name__ == '__main__':
             total_loss += loss.item()
 
             pred_text = text_decoder(outputs)
+            pred_text_api = llm.get_response(pred_text)
+
             print("pred_text:",pred_text)
+            print("pred_text_api:",pred_text_api)
+
+            exit(0)
 
         losses.append(total_loss/len(train_loader))
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss/len(train_loader)}")
