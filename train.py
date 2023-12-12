@@ -15,16 +15,16 @@ from dataset import dataset
 
 # evaluation
 from metric.WER_CER_metric import CalculateErrorRate
-from misc import idx2text, ctc_decoder
+from misc import idx2text, ctc_decoder, plot_error_curves_comparison
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-    parser.add_argument('--epochs', type=int, default=2, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--num_workers', type=int, default=0, help='number of workers')
     parser.add_argument('--save_dir', type=str, default='./checkpoints', help='save path')
-    parser.add_argument('--data', type=str, default='frames', help='train data path')
+    parser.add_argument('--data', type=str, default='/data/ziruiw3/lip_reading/frames/', help='train data path')
     parser.add_argument('--visualize', type=bool, default=False, help='visualize error curve')
 
     args = parser.parse_args()
@@ -34,7 +34,7 @@ def train():
     # prepare log 
     if not os.path.exists('./log'):
         os.makedirs('./log')
-    log = open('./log/log.txt', 'w')
+    log = open('./log/log.txt', 'a')
 
     # parse args
     args = parse_args()
@@ -52,8 +52,12 @@ def train():
                                                          pin_memory=False)
     print("data loaded")
 
+    # output directory 
+    outputs = {}
+
+    # ---- training 3D CNN + GRU -----
     # load model
-    model = DenseNet3D()
+    model = DenseNet3D(rnn='gru')
     model.to(device)
     criterion = torch.nn.CTCLoss()                                  # loss function
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)    # optimizer
@@ -108,7 +112,7 @@ def train():
 
             # statistics
             iteration += 1
-            if iteration % 10 == 0:
+            if iteration % 50 == 0:
                 # print statistics and write to log
                 print('Epoch [{}/{}], Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}'.format(epoch + 1, args.epochs, iteration, loss.item(), mean_WER, mean_CER))
                 log.write('Epoch [{}/{}], Iteration: {}, Loss: {:.3f}, WER: {:.3f}, CER: {:.3f}\n'.format(epoch + 1, args.epochs, iteration, loss.item(), mean_WER, mean_CER))
@@ -119,7 +123,7 @@ def train():
         # save model
         if not os.path.exists(args.save_dir):
             os.makedirs(args.save_dir)
-        torch.save(model.state_dict(), os.path.join(args.save_dir, 'model-ep{}.pth'.format(epoch)))
+        torch.save(model.state_dict(), os.path.join(args.save_dir, 'densenet3d-gru-ep{}.pth'.format(epoch)))
 
         # flush log
         log.flush()

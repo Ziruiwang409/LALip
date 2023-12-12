@@ -1,5 +1,6 @@
 import numpy as np
 import string
+import matplotlib.pyplot as plt
 
 # Letters contain the tokens, except for the blank token
 LETTERS = [' '] + list(string.ascii_lowercase)
@@ -52,3 +53,23 @@ def ctc_decoder(output):
     for _ in range(length):
         text_list.append(ctc_idx2text(output[_]))
     return text_list
+
+def plot_error_curves_comparison(output, mode='test'):
+    iters = len(output['gru']['train_wer'])
+    plt.figure(figsize=(15, 5))
+    plt.subplot(121)
+    for i, k in enumerate(output):
+        plt.plot(range(iters), output[k]['train_wer'], label=k)
+    plt.title('{} Word Error Rate (WER)'.format(mode))
+    plt.xlabel('Iteration')
+    plt.ylabel('WER')
+    plt.legend()    
+
+    plt.subplot(122)
+    for i, k in enumerate(output):
+        plt.plot(range(iters), output[k]['train_cer'], label=k)
+    plt.title('{} Character Error Rate (CER)'.format(mode))
+    plt.xlabel('Iteration')
+    plt.ylabel('CER')
+    plt.legend()
+    plt.savefig('./log/{}_error_curve.png'.format(mode))
