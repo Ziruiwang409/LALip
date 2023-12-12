@@ -99,7 +99,6 @@ class LLM_Inference:
 
 if __name__ == "__main__":
     api_key = "your-api-key"
-    send_api = True
 
     llm = LLM_Inference(api_key)
     pred = np.array([['place', 'at', 'd', 'four', 'again', 'please'],['bin', 'blue', 'at', 'z', 'three', 'please']])
