@@ -5,6 +5,15 @@ import matplotlib.pyplot as plt
 # Letters contain the tokens, except for the blank token
 LETTERS = [' '] + list(string.ascii_lowercase)
 
+def gt_label():
+    chars = 'a b c d e f g h i j k l m n o p q r s t u v w x y z'
+    chars = chars.split(' ')
+
+    words = ['bin', 'lay', 'place', 'set', 'blue', 'green', 'red', 'white', 'at', 'by', 'in', 'with', 'a', 'an', 'the', 'no', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'again', 'now', 'please', 'soon']
+
+    words.extend(chars)
+    return words
+
 
 def text2idx(text, start=1):
         """

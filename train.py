@@ -12,7 +12,7 @@ from dataset import dataset
 
 # evaluation
 from metric.WERandCERmetrics import CalculateErrorRate
-from misc import idx2text, ctc_decoder, plot_error_curves_comparison
+from LALip.misc import idx2text, ctc_decoder, plot_error_curves_comparison
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')

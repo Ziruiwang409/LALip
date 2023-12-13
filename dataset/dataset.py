@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import numpy as np
 
-from misc import text2idx
+from LALip.misc import text2idx
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from model.Dense3D import Dense3D
+from LALip.model.Dense3D import Dense3D
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

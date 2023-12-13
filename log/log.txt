@@ -189,17 +189,76 @@ Epoch 10 Evaluation Loss: 0.283, eval WER: 0.260, eval CER: 0.128
 ================================================
 Eval Log:
 ================================================
+
+============================== Batch Size = 64 ===============================
+inferencing using GRU
+Namespace(data='/data/ziruiw3/lip_reading/frames', batch_size=64, rnn='gru', save_dir='./checkpoints', enable_llm=False)
 Using device: cuda:0
 model loaded
-Eval: Iteration: 20, Loss: 0.467, WER: 0.383, CER: 0.167
-Eval: Iteration: 40, Loss: 0.467, WER: 0.362, CER: 0.159
-Eval: Iteration: 60, Loss: 0.476, WER: 0.378, CER: 0.184
-Eval: Iteration: 80, Loss: 0.478, WER: 0.392, CER: 0.191
-Eval: Iteration: 100, Loss: 0.476, WER: 0.397, CER: 0.198
+Iter: 10, WER: 0.4068550497121925, CER: 0.2139731837566467, avg inf time (per query): 0.0027003325521945953s
+Iter: 20, WER: 0.41266088783819277, CER: 0.21896308429519995, avg inf time (per query): 0.002681862562894821s
+Iter: 30, WER: 0.4119810825013137, CER: 0.2215411023572627, avg inf time (per query): 0.0025263354182243347s
+Iter: 40, WER: 0.41096249672174134, CER: 0.22086414683094457, avg inf time (per query): 0.0026955753564834595s
+Iter: 50, WER: 0.40735494701500363, CER: 0.21804426821361192, avg inf time (per query): 0.002574365586042404s
+Iter: 60, WER: 0.4090392516828394, CER: 0.21813890361936358, avg inf time (per query): 0.0026273950934410095s
+Iter: 70, WER: 0.4086069875543559, CER: 0.2172351013443856, avg inf time (per query): 0.0025824643671512604s
+Iter: 80, WER: 0.40930263071573836, CER: 0.2175810324944392, avg inf time (per query): 0.002574887126684189s
+Iter: 90, WER: 0.40807109557109555, CER: 0.21670329586989234, avg inf time (per query): 0.0026160962879657745s
+Iter: 100, WER: 0.4071042552075135, CER: 0.2156466477160101, avg inf time (per query): 0.002568613737821579s
+Evaluation results: 
+WER: 0.407
+CER: 0.215
+
+inferencing using GRU
+Namespace(data='/data/ziruiw3/lip_reading/frames', batch_size=64, rnn='gru', save_dir='./checkpoints', enable_llm=True)
 Using device: cuda:0
 model loaded
-Eval: Iteration: 20, Loss: 0.265, WER: 0.233, CER: 0.094
-Eval: Iteration: 40, Loss: 0.260, WER: 0.237, CER: 0.105
-Eval: Iteration: 60, Loss: 0.259, WER: 0.222, CER: 0.096
-Eval: Iteration: 80, Loss: 0.262, WER: 0.219, CER: 0.095
-Eval: Iteration: 100, Loss: 0.264, WER: 0.220, CER: 0.096
+Iter: 10, WER: 0.4097331240188383, CER: 0.25264171546324704, avg inf time (per query): 0.5680872537195683s
+Iter: 20, WER: 0.4158156585493585, CER: 0.2526164420713917, avg inf time (per query): 1.0110909715294838s
+Iter: 30, WER: 0.42072638379605376, CER: 0.25653231658637327, avg inf time (per query): 0.49445120245218277s
+Iter: 40, WER: 0.4385310290652003, CER: 0.2674028092231101, avg inf time (per query): 0.8774785585701466s
+Iter: 50, WER: 0.4409024288107202, CER: 0.26780309590719925, avg inf time (per query): 0.8334943354129791s
+Iter: 60, WER: 0.4407068062827225, CER: 0.2670858872907806, avg inf time (per query): 0.8887797072529793s
+Iter: 70, WER: 0.436686124831612, CER: 0.2656547228260157, avg inf time (per query): 0.8606969229876995s
+Iter: 80, WER: 0.43220561237870436, CER: 0.26361407925094155, avg inf time (per query): 0.9582652375102043s
+Iter: 90, WER: 0.43463937962800997, CER: 0.2649645832943045, avg inf time (per query): 0.5517085157334805s
+Iter: 100, WER: 0.430761154855643, CER: 0.26245236213227596, avg inf time (per query): 1.096871756017208s
+Evaluation results: 
+WER: 0.430
+CER: 0.262
+
+inferencing using LSTM 
+Namespace(data='/data/ziruiw3/lip_reading/frames', batch_size=64, rnn='lstm', save_dir='./checkpoints', enable_llm=False)
+Using device: cuda:0
+model loaded
+Iter: 10, WER: 0.25499474237644587, CER: 0.1139408950289349, avg inf time (per query): 0.00254170224070549s
+Iter: 20, WER: 0.25288713910761157, CER: 0.11275294545098717, avg inf time (per query): 0.002699345350265503s
+Iter: 30, WER: 0.2538097740409879, CER: 0.11337876112563153, avg inf time (per query): 0.0026193447411060333s
+Iter: 40, WER: 0.2546278062229224, CER: 0.11366359557307104, avg inf time (per query): 0.0026190876960754395s
+Iter: 50, WER: 0.2537807183364839, CER: 0.11321013442322103, avg inf time (per query): 0.0025658048689365387s
+Iter: 60, WER: 0.25349956255468065, CER: 0.11274611331206336, avg inf time (per query): 0.002563130110502243s
+Iter: 70, WER: 0.2533948533273314, CER: 0.1125810849236899, avg inf time (per query): 0.0025153160095214844s
+Iter: 80, WER: 0.2535275972960557, CER: 0.1127462084848996, avg inf time (per query): 0.002614028751850128s
+Iter: 90, WER: 0.2528715526791441, CER: 0.1119065837863274, avg inf time (per query): 0.0026072748005390167s
+Iter: 100, WER: 0.2528464242615037, CER: 0.11182157240366068, avg inf time (per query): 0.002555783838033676s
+Evaluation results: 
+WER: 0.253
+CER: 0.112
+
+inferencing using LSTM
+Namespace(data='/data/ziruiw3/lip_reading/frames', batch_size=64, rnn='lstm', save_dir='./checkpoints', enable_llm=True)
+Using device: cuda:0
+model loaded
+Iter: 10, WER: 0.22283464566929134, CER: 0.12076200535340603, avg inf time (per query): 1.0149676017463207s
+Iter: 20, WER: 0.2536004189578424, CER: 0.13733237480017127, avg inf time (per query): 0.7258362956345081s
+Iter: 30, WER: 0.2573773354286712, CER: 0.13820014008003403, avg inf time (per query): 0.8729758597910404s
+Iter: 40, WER: 0.2557606703325478, CER: 0.13690418459041775, avg inf time (per query): 0.7942734584212303s
+Iter: 50, WER: 0.2596375445212654, CER: 0.13916425907609892, avg inf time (per query): 0.4843817986547947s
+Iter: 60, WER: 0.260632259191337, CER: 0.13997723103407708, avg inf time (per query): 0.8676432631909847s
+Iter: 70, WER: 0.2603862564563216, CER: 0.14035424158311272, avg inf time (per query): 0.47372469678521156s
+Iter: 80, WER: 0.2627751572327044, CER: 0.14183342223273204, avg inf time (per query): 0.7400059476494789s
+Iter: 90, WER: 0.26755765199161424, CER: 0.14441286693670194, avg inf time (per query): 0.7618607021868229s
+Iter: 100, WER: 0.2645069979556534, CER: 0.14275705552423476, avg inf time (per query): 0.693573072552681s
+Evaluation results: 
+WER: 0.264
+CER: 0.142
