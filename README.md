@@ -1,5 +1,5 @@
-# LALip
-LALip: LLM-Aided Lip-Reading Sentences
+# LALip: Large Language Model Aided Lip-Reading
+
 
 ## Quickstart
 
