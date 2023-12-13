@@ -22,17 +22,26 @@ class LLM_Inference:
         
         user_content = self._lines2str(pred)
         response = self._get_response(user_content, system_content)
-        all_valid_lines = self._validate_lines(response)
-        response[~all_valid_lines] = pred[~all_valid_lines]
+
+        if len(response) == len(pred):
+            all_valid_lines = self._validate_lines(response)
+            response[~all_valid_lines] = pred[~all_valid_lines]
+        else:
+            print("response length does not match prediction length")
+            all_valid_lines = np.array([False] * len(pred))
+            response = pred
 
         all_response = response
         while not np.all(all_valid_lines) and retry_amt > 0:
             user_content = self._lines2str(all_response[~all_valid_lines])
             response = self._get_response(user_content, system_content)
-            all_response[~all_valid_lines] = response
-            all_valid_lines = self._validate_lines(all_response)
-            all_response[~all_valid_lines] = pred[~all_valid_lines]
+            if len(response) == len(all_response[~all_valid_lines]):
+                all_response[~all_valid_lines] = response
+                all_valid_lines = self._validate_lines(all_response)
+                all_response[~all_valid_lines] = pred[~all_valid_lines]
+            
             retry_amt -= 1
+
 
         return all_response
     
@@ -48,6 +57,7 @@ class LLM_Inference:
 
         response = completion.choices[0].message.content
         response = self._format_response(response)
+
         return response
     
     def _get_default_system_content(self):
