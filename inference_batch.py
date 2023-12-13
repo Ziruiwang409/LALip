@@ -17,7 +17,7 @@ from metric.WERandCERmetrics import CalculateErrorRate
 from LALip.misc import idx2text, ctc_decoder
 
 # API key
-API_KEY = "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"
+API_KEY = "your-api-key"
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Lip Reading')
