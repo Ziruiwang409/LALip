@@ -11,7 +11,7 @@ from model.densenet_3d import DenseNet3D
 from dataset import dataset
 
 # evaluation
-from metric.WER_CER_metric import CalculateErrorRate
+from metric.WERandCERmetrics import CalculateErrorRate
 from misc import idx2text, ctc_decoder, plot_error_curves_comparison
 
 def parse_args():
